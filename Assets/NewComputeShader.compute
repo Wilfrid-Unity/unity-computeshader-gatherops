@@ -1,0 +1,33 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+
+Texture2D<float4> tex_in;
+SamplerState samplertex_in;
+
+Texture2D dtex_in;
+SamplerComparisonState samplerdtex_in;
+
+// Create a RenderTexture with enableRandomWrite flag and set it
+// with cs.SetTexture
+RWTexture2D<float4> tex_out;
+
+[numthreads(8,8,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    //tex_out[id.xy] = float4(id.x & id.y, (id.x & 15)/15.0, (id.y & 15)/15.0, 0.0);
+
+    //int2 offset = int2(i.uv);
+    int2 offset = id.xy;
+    float2 uv = id.xy / 512;
+    float4 r = tex_in.Gather(samplertex_in, uv);
+    float4 roff = tex_in.Gather(samplertex_in, uv, int2(2, 3));
+    float4 g = tex_in.GatherGreen(samplertex_in, uv);
+    float4 boff = tex_in.GatherBlue(samplertex_in, uv, offset);
+    float4 a = tex_in.GatherAlpha(samplertex_in, uv);
+    float4 rcmp = dtex_in.GatherCmp(samplerdtex_in, uv, 1.0);
+    float4 rcmpoff = dtex_in.GatherCmpRed(samplerdtex_in, uv, uv.x, int2(4, 5));
+    float col = (r + roff + g + boff + a + rcmp + rcmpoff) / 7.0;
+    tex_out[id.xy] = float4(col, col, col, 1.0);
+    //tex_out[id.xy] = float4(r.x, r.y, r.z, 1.0);
+}
